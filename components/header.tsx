@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, Menu, Palette } from 'lucide-react';
+import { Bell, Menu, Palette, Check } from 'lucide-react';  // Add Check icon import
 import { cn } from '@/lib/utils';  // Add this import
 import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ const colorOptions = [
 
 export default function Header() {
   const { toggleSidebar } = useLayout();
-  const { setColorTheme } = useColorTheme();
+  const { colorTheme, setColorTheme } = useColorTheme();  // Get current colorTheme
 
   return (
     <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -33,7 +33,7 @@ export default function Header() {
         <Button
           variant="ghost"
           size="icon"
-          className="md:hidden"
+          className="md:hidden border-2 border-primary/20 rounded-full hover:bg-accent/50"
           onClick={toggleSidebar}
         >
           <Menu className="h-5 w-5" />
@@ -50,13 +50,18 @@ export default function Header() {
                 <DropdownMenuItem 
                   key={color.value}
                   onClick={() => setColorTheme(color.value as ColorTheme)}
-                  className="flex items-center gap-2"
+                  className="flex items-center justify-between"
                 >
-                  <div className={cn(
-                    "h-4 w-4 rounded-full",
-                    color.class
-                  )} />
-                  {color.name}
+                  <div className="flex items-center gap-2">
+                    <div className={cn(
+                      "h-4 w-4 rounded-full",
+                      color.class
+                    )} />
+                    {color.name}
+                  </div>
+                  {colorTheme === color.value && (
+                    <Check className="h-4 w-4" />
+                  )}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
