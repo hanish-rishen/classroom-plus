@@ -2,7 +2,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
 import { PlusCircle, Users } from 'lucide-react';
 
 const classes = [
@@ -64,13 +63,6 @@ export default function ClassesPage() {
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Course Progress</span>
-                  <span>{classItem.progress}%</span>
-                </div>
-                <Progress value={classItem.progress} />
-              </div>
               <div className="space-y-1">
                 <p className="text-sm font-medium">Next Class</p>
                 <p className="text-sm text-muted-foreground">
