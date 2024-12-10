@@ -6,6 +6,7 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { Button } from '@/components/ui/button';
 import { useLayout } from '@/components/layout-context';
 import { useColorTheme } from '@/components/theme-colors';
+import type { ColorTheme } from '@/components/theme-colors';  // Add this import
 import {
   DropdownMenu,
   DropdownMenuContent,
