@@ -1,5 +1,11 @@
 import NextAuth from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
+import { JWT } from 'next-auth/jwt';
+
+interface ExtendedToken extends JWT {
+  accessToken?: string;
+  refreshToken?: string;
+}
 
 const handler = NextAuth({
   providers: [
@@ -19,15 +25,16 @@ const handler = NextAuth({
   secret: process.env.NEXTAUTH_SECRET,
   debug: true,
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account }): Promise<ExtendedToken> {
       if (account) {
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
       }
-      return token;
+      return token as ExtendedToken;
     },
     async session({ session, token }) {
-      session.accessToken = token.accessToken;
+      const extendedToken = token as ExtendedToken;
+      session.accessToken = extendedToken.accessToken;
       return session;
     },
   },
