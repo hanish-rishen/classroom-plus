@@ -6,6 +6,7 @@ import { LayoutProvider } from '@/components/layout-context';
 import Sidebar from '@/components/sidebar';
 import Header from '@/components/header';
 import { ColorThemeProvider } from '@/components/theme-colors';
+import { AuthProvider } from '@/components/auth-provider';
 
 const hostGrotesk = localFont({
   src: [
@@ -53,23 +54,13 @@ export default function RootLayout({
         />
       </head>
       <body className={`${hostGrotesk.variable} font-sans`}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <ColorThemeProvider>
-            <LayoutProvider>
-              <div className="min-h-screen">
-                <div className="flex h-screen overflow-hidden">
-                  <Sidebar />
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <Header />
-                    <div className="flex-1 overflow-y-auto">
-                      <main className="p-4 md:p-6">{children}</main>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </LayoutProvider>
-          </ColorThemeProvider>
-        </ThemeProvider>
+        <AuthProvider>
+          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+            <ColorThemeProvider>
+              {children}
+            </ColorThemeProvider>
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );
