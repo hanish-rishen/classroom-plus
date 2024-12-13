@@ -40,8 +40,8 @@ export function CartButton() {
           )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="fixed inset-4 w-[calc(100vw-32px)] sm:w-[95vw] sm:max-w-md sm:right-4 sm:left-auto rounded-lg border shadow-lg overflow-hidden">
-        <div className="flex flex-col h-[calc(100vh-32px)] max-h-[calc(100vh-32px)]">
+      <SheetContent className="fixed top-4 bottom-4 right-4 w-[calc(100vw-32px)] sm:w-[95vw] sm:max-w-md rounded-lg border shadow-lg">
+        <div className="flex flex-col h-full">
           <div className="p-6 space-y-2.5">
             <SheetHeader className="space-y-2.5">
               <SheetTitle className="text-center">Resource Cart ({items.length})</SheetTitle>
@@ -55,7 +55,7 @@ export function CartButton() {
             </SheetHeader>
           </div>
 
-          <ScrollArea className="flex-1 px-6">
+          <ScrollArea className="flex-1 px-6 pb-6">
             <div className="space-y-4">
               {items.map((item) => (
                 <div
