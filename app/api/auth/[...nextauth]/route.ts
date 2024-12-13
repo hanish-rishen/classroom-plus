@@ -14,7 +14,15 @@ const handler = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
       authorization: {
         params: {
-          scope: 'openid email profile https://www.googleapis.com/auth/classroom.courses.readonly https://www.googleapis.com/auth/classroom.coursework.me https://www.googleapis.com/auth/classroom.announcements.readonly',
+          scope: [
+            'openid',
+            'email',
+            'profile',
+            'https://www.googleapis.com/auth/classroom.courses.readonly',
+            'https://www.googleapis.com/auth/classroom.coursework.me',
+            'https://www.googleapis.com/auth/classroom.courseworkmaterials',
+            'https://www.googleapis.com/auth/classroom.courseworkmaterials.readonly'
+          ].join(' '),
           prompt: "consent",
           access_type: "offline",
           response_type: "code"

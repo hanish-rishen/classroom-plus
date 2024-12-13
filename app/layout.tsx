@@ -7,6 +7,7 @@ import Sidebar from '@/components/sidebar';
 import Header from '@/components/header';
 import { ColorThemeProvider } from '@/components/theme-colors';
 import { AuthProvider } from '@/components/auth-provider';
+import { CartProvider } from '@/contexts/CartContext';
 
 const hostGrotesk = localFont({
   src: [
@@ -55,11 +56,13 @@ export default function RootLayout({
       </head>
       <body className={`${hostGrotesk.variable} font-sans`}>
         <AuthProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-            <ColorThemeProvider>
-              {children}
-            </ColorThemeProvider>
-          </ThemeProvider>
+          <CartProvider>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+              <ColorThemeProvider>
+                {children}
+              </ColorThemeProvider>
+            </ThemeProvider>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

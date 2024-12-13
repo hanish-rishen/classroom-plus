@@ -192,9 +192,9 @@ export default function AssignmentsPage() {
   }
 
   return (
-    <div className="space-y-4 pb-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Assignments</h1>
+    <div className="space-y-6 p-4 md:p-6">
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-bold md:text-3xl">Assignments</h1>
       </div>
 
       <div className="flex flex-col md:flex-row gap-4 mb-4">
