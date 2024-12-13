@@ -126,6 +126,11 @@ export default function Sidebar() {
               <Link
                 key={item.name}
                 href={item.href}
+                onClick={() => {
+                  if (window.innerWidth < 768) {  // Only close on mobile
+                    toggleSidebar();
+                  }
+                }}
                 className={cn(
                   'flex items-center rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                   pathname === item.href
