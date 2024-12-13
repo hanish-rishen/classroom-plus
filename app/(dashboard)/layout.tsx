@@ -1,6 +1,5 @@
 import { LayoutProvider } from '@/components/layout-context';
 import Sidebar from '@/components/sidebar';
-import Header from '@/components/header';
 
 export default function DashboardLayout({
   children,
@@ -9,13 +8,12 @@ export default function DashboardLayout({
 }) {
   return (
     <LayoutProvider>
-      <div className="min-h-screen">
-        <div className="flex h-screen overflow-hidden">
+      <div className="min-h-screen bg-muted/30 p-2">
+        <div className="flex h-[calc(100vh-1rem)] gap-2">
           <Sidebar />
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <Header />
-            <div className="flex-1 overflow-y-auto">
-              <main className="p-4 md:p-6">{children}</main>
+          <div className="flex-1 overflow-hidden rounded-xl border bg-background/80 backdrop-blur-lg shadow-lg">
+            <div className="h-full overflow-y-auto">
+              <main className="p-4">{children}</main>
             </div>
           </div>
         </div>
