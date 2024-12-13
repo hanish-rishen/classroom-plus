@@ -55,9 +55,9 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-muted/30 p-2">
-      <div className="h-[calc(100vh-1rem)] rounded-xl border bg-background/80 backdrop-blur-lg shadow-lg p-8">
-        <div className="relative flex flex-col h-full">
-          <div className="flex items-center gap-4 mb-8">
+      <div className="h-[calc(100vh-1rem)] rounded-xl border bg-background/80 backdrop-blur-lg shadow-lg overflow-y-auto">
+        <div className="relative flex flex-col min-h-full p-4 md:p-8">
+          <div className="sticky top-0 z-10 flex items-center gap-4 mb-8 bg-background/80 backdrop-blur-sm py-2 rounded-lg">
             <Logo />
             <div className="flex items-center gap-2">
               <ThemeToggle />
@@ -88,7 +88,7 @@ export default function LoginPage() {
             </div>
           </div>
           
-          <div className="flex-1 flex items-center justify-center">
+          <div className="flex-1 flex items-center justify-center py-4">
             <div className="grid w-full max-w-6xl gap-8 md:grid-cols-2">
               {/* Features Section - Now visible on mobile */}
               <div className="flex flex-col justify-center space-y-6 md:order-1 order-2">
