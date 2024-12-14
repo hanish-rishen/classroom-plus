@@ -176,13 +176,13 @@ export default function ResourcesPage() {
         </div>
         <div className="flex flex-col gap-4 md:flex-row md:items-center">
           <Select value={selectedCourse} onValueChange={setSelectedCourse}>
-            <SelectTrigger className="w-full md:w-[180px]">
+            <SelectTrigger className="w-full md:w-[180px] focus:ring-primary">
               <SelectValue placeholder="All Classes" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Classes</SelectItem>
+            <SelectContent className="max-w-xs w-full sm:max-w-md overflow-x-hidden z-50">
+              <SelectItem className="whitespace-normal break-words" value="all">All Classes</SelectItem>
               {courses.map(course => (
-                <SelectItem key={course.id} value={course.id}>
+                <SelectItem className="whitespace-normal break-words" key={course.id} value={course.id}>
                   {course.name}
                 </SelectItem>
               ))}
@@ -192,7 +192,7 @@ export default function ResourcesPage() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search resources..."
-              className="pl-8"
+              className="pl-8 focus:ring-primary focus:ring-2 focus:outline-none"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />

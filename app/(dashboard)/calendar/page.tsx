@@ -212,7 +212,7 @@ export default function CalendarPage() {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="md:flex md:items-center md:justify-between gap-4 space-y-2 md:space-y-0">
+      <div className="md:flex md:items-center md:justify-between gap-6 space-y-4 md:space-y-0">
         <h1 className="text-2xl font-bold md:text-3xl text-left">Calendar</h1>
         <Select onValueChange={setSelectedCourse} defaultValue="all">
           <SelectTrigger className="w-full md:w-64 focus:ring-primary mt-0">
