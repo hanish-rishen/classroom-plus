@@ -41,7 +41,7 @@ export function CartButton() {
         </Button>
       </SheetTrigger>
       <SheetContent className="fixed top-4 bottom-4 right-4 w-[calc(100vw-32px)] sm:w-[95vw] sm:max-w-md rounded-lg border shadow-lg">
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full p-4">
           <div className="p-6 space-y-2.5">
             <SheetHeader className="space-y-2.5">
               <SheetTitle className="text-center">Resource Cart ({items.length})</SheetTitle>
