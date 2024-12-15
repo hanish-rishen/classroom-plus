@@ -6,7 +6,7 @@ type CacheItem<T> = {
 class Cache {
   private static instance: Cache;
   private cache: Map<string, CacheItem<any>>;
-  private readonly TTL = 5 * 60 * 1000; // 5 minutes cache
+  private readonly TTL = 3 * 60 * 1000; // Reduced to 3 minutes
 
   private constructor() {
     this.cache = new Map();

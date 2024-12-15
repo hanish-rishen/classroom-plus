@@ -17,7 +17,6 @@ interface Class {
 
 interface Teacher {
   id: string;
-  name: string;
 }
 
 interface BatchResult extends Class {} // Add this interface for type safety
@@ -44,54 +43,34 @@ export async function GET(req: NextRequest) {
     auth.setCredentials({ access_token: accessToken });
     const classroom = google.classroom({ version: 'v1', auth });
 
-    // Remove or adjust delays
-    // Option 1: Remove delays entirely
-    const delay = (ms: number) => Promise.resolve();
-
-    // Option 2: Reduce delays
-    // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms / 2));
-
     try {
-      // Fetch all courses with pagination
+      // Fetch all courses with optimized pagination
       let allCourses: classroom_v1.Schema$Course[] = [];
       let pageToken: string | undefined | null = undefined;
 
       do {
-        // Correct type annotation using GaxiosResponse
         const courseResponse: GaxiosResponse<classroom_v1.Schema$ListCoursesResponse> = await classroom.courses.list({
-          pageSize: 50,  // Increased page size
+          pageSize: 50,
           courseStates: ['ACTIVE'],
           fields: 'nextPageToken,courses(id,name,ownerId,section,room,enrollmentCode)',
           pageToken: pageToken || undefined,
         });
 
-        const courses = courseResponse.data.courses || []; // Access data via .data
+        const courses = courseResponse.data.courses || [];
         allCourses = [...allCourses, ...courses];
-        pageToken = courseResponse.data.nextPageToken; // Access data via .data
-
-        // Remove delay between pagination requests
-        // if (pageToken) {
-        //   await delay(1000);
-        // }
-
+        pageToken = courseResponse.data.nextPageToken;
       } while (pageToken);
 
       if (!allCourses.length) return NextResponse.json([]);
 
-      // Process courses in larger batches to reduce total processing time
-      const batchSize = 10; // Increased batch size
+      const batchSize = 10;
       const classes: Class[] = [];
 
       for (let i = 0; i < allCourses.length; i += batchSize) {
         const batch = allCourses.slice(i, i + batchSize);
-        
-        // Process each batch without delays
         const batchResults = await Promise.all(
           batch.map(async (course) => {
             try {
-              // Remove or reduce delay between each course request
-              // await delay(500);
-
               const [students, teacher] = await Promise.all([
                 classroom.courses.students.list({
                   courseId: course.id!,
@@ -103,13 +82,13 @@ export async function GET(req: NextRequest) {
                 }),
               ]);
 
-              const result: BatchResult = {
+              const result: Class = {
                 id: course.id || '',
                 name: course.name || '',
-                teacher: teacher.data.teachers?.[0]?.profile?.name?.fullName || 'Unknown Teacher', // Corrected property access
-                students: students.data.students?.length || 0, // Corrected property access
-                section: course.section || undefined,  // Changed this line
-                room: course.room || undefined,       // Changed this line
+                teacher: teacher.data.teachers?.[0]?.profile?.name?.fullName || 'Unknown Teacher',
+                students: students.data.students?.length || 0,
+                section: course.section || undefined,
+                room: course.room || undefined,
                 link: `https://classroom.google.com/c/${course.id}`,
               };
 
@@ -122,14 +101,9 @@ export async function GET(req: NextRequest) {
         );
 
         classes.push(...batchResults.filter((result): result is Class => result !== null));
-
-        // Remove delay between batches
-        // if (i + batchSize < allCourses.length) {
-        //   await delay(2000);
-        // }
       }
 
-      // Cache the results
+      // Cache the results for 5 minutes
       cache.set(cacheKey, classes);
       return NextResponse.json(classes);
 
