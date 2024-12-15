@@ -173,7 +173,7 @@ export default function CalendarPage() {
                   href={assignment.alternateLink}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-xs p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                  className="block text-xs p-1 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors border border-dashed border-primary"
                 >
                   {assignment.title}
                 </a>

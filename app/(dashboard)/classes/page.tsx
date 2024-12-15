@@ -1,82 +1,206 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PlusCircle, Users } from 'lucide-react';
-
-const classes = [
-  {
-    id: 1,
-    name: 'Advanced Mathematics',
-    teacher: 'Dr. Smith',
-    students: 28,
-    progress: 65,
-    nextClass: '2024-02-16 09:00 AM',
-  },
-  {
-    id: 2,
-    name: 'World History',
-    teacher: 'Prof. Johnson',
-    students: 32,
-    progress: 45,
-    nextClass: '2024-02-16 11:00 AM',
-  },
-  {
-    id: 3,
-    name: 'Physics',
-    teacher: 'Dr. Brown',
-    students: 25,
-    progress: 80,
-    nextClass: '2024-02-17 10:00 AM',
-  },
-  {
-    id: 4,
-    name: 'Literature',
-    teacher: 'Ms. Davis',
-    students: 30,
-    progress: 55,
-    nextClass: '2024-02-17 02:00 PM',
-  },
-];
+import { Users, ExternalLink, GraduationCap, DoorOpen, BookCopy, Search } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
+import { Input } from '@/components/ui/input';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
 export default function ClassesPage() {
+  interface ClassItem {
+    id: string;
+    name: string;
+    teacher: string;
+    students: number;
+    section?: string;
+    room?: string;
+    link: string;
+  }
+  
+  const { data: session, status } = useSession(); // Add status from useSession
+  const [classes, setClasses] = useState<ClassItem[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const response = await fetchWithRetry('/api/classroom/classes', 
+          {
+            headers: {
+              Authorization: `Bearer ${session?.accessToken}`,
+            },
+          },
+          5  // Increase max retries
+        );
+        
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again in a few minutes.');
+        }
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || errorData.details || 'Network response was not ok');
+        }
+
+        const data: ClassItem[] = await response.json();
+        setClasses(data);
+      } catch (error: any) {
+        console.error('Error fetching classes:', error);
+        setError(error.message || 'Failed to load classes. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Only fetch if session is loaded and we have an access token
+    if (status === 'authenticated' && session?.accessToken) {
+      fetchClasses();
+    } else if (status === 'unauthenticated') {
+      setError('You must be logged in to view classes.');
+      setLoading(false);
+    }
+    // Keep loading true while session is loading
+    else if (status === 'loading') {
+      setLoading(true);
+    }
+  }, [session?.accessToken, status]); // Add status to dependencies
+
+  // Add search filter function
+  const filteredClasses = classes.filter(classItem => 
+    classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    classItem.teacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    classItem.section?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    classItem.room?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="text-2xl font-bold md:text-3xl">Classes</h1>
-        <Button>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Join Class
-        </Button>
+    <div className="space-y-6 p-4">
+      <div className="flex flex-col gap-4">
+        {/* Header section */}
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-xl font-bold md:text-2xl">Classes</h1>
+            {!loading && (
+              <p className="text-sm text-muted-foreground">
+                {filteredClasses.length} {filteredClasses.length === 1 ? 'class' : 'classes'} found
+              </p>
+            )}
+          </div>
+
+          {!error && (
+            <div className="relative w-full sm:w-72">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search classes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {classes.map((classItem) => (
-          <Card key={classItem.id} className="cursor-pointer hover:bg-muted/50">
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{classItem.name}</span>
-                <Users className="h-5 w-5 text-muted-foreground" />
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {classItem.teacher}
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Next Class</p>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(classItem.nextClass).toLocaleString()}
-                </p>
-              </div>
-              <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                <Users className="h-4 w-4" />
-                <span>{classItem.students} students</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {loading ? (
+        <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+          <Spinner className="h-12 w-12" />
+          <p className="text-muted-foreground animate-pulse">Loading classes...</p>
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center h-[400px]">
+          <div className="text-red-500">{error}</div>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 max-w-5xl mx-auto">
+          {[...filteredClasses].sort((a, b) => {
+            // First, sort by known/unknown teacher
+            if (a.teacher === 'Unknown Teacher' && b.teacher !== 'Unknown Teacher') return 1;
+            if (a.teacher !== 'Unknown Teacher' && b.teacher === 'Unknown Teacher') return -1;
+            
+            // Then sort by section/room presence
+            const aHasDetails = !!(a.section || a.room);
+            const bHasDetails = !!(b.section || b.room);
+            return bHasDetails ? 1 : aHasDetails ? -1 : 0;
+          }).map((classItem) => (
+            <Card 
+              key={classItem.id} 
+              className="hover:bg-muted/50 transition-all duration-200 hover:shadow-md"
+            >
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <CardTitle className="text-base line-clamp-2">{classItem.name}</CardTitle>
+                    <p className="text-xs text-muted-foreground flex items-center gap-2">
+                      <GraduationCap 
+                        className={`h-4 w-4 flex-shrink-0 ${
+                          classItem.teacher === 'Unknown Teacher' 
+                            ? 'text-muted-foreground' 
+                            : 'text-primary'
+                        }`}
+                      />
+                      <span className="truncate">{classItem.teacher}</span>
+                    </p>
+                  </div>
+                  <div className="flex-shrink-0 ml-4">
+                    <a 
+                      href={classItem.link} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="inline-flex items-center text-primary hover:text-primary/80 transition-colors"
+                      title="Open in Google Classroom"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex flex-wrap gap-2">
+                  {classItem.section && (
+                    <div className="inline-flex items-center text-xs rounded-full border border-dashed border-primary">
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 text-primary rounded-l-full border-r border-dashed border-primary">
+                        <BookCopy className="h-3 w-3" />
+                        Section
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-primary/5">{classItem.section}</span>
+                    </div>
+                  )}
+                  {classItem.room && (
+                    <div className="inline-flex items-center text-xs rounded-full border border-dashed border-primary">
+                      <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 text-primary rounded-l-full border-r border-dashed border-primary">
+                        <DoorOpen className="h-3 w-3" />
+                        Room
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-primary/5">{classItem.room}</span>
+                    </div>
+                  )}
+                  <div className="inline-flex items-center text-xs rounded-full border border-dashed border-primary">
+                    <div className="flex items-center gap-1.5 px-2.5 py-0.5 bg-primary/10 text-primary rounded-l-full border-r border-dashed border-primary">
+                      <Users className="h-3 w-3" />
+                      Students
+                    </div>
+                    <span className="px-2.5 py-0.5 bg-primary/5">{classItem.students}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {!loading && filteredClasses.length === 0 && !error && (
+        <div className="text-center text-sm text-muted-foreground p-6 border rounded-lg bg-muted/5">
+          {searchQuery ? (
+            <p>No classes found matching your search.</p>
+          ) : (
+            <p>No classes found. Join or create a class to get started.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

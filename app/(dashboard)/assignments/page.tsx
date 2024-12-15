@@ -33,9 +33,9 @@ function StatusBadge({ state, dueDate }: { state: Assignment['state']; dueDate: 
   };
 
   const styles = {
-    TURNED_IN: 'bg-green-100 text-green-700',
-    CREATED: isMissing() ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700',
-    RETURNED: 'bg-yellow-100 text-yellow-700',
+    TURNED_IN: 'bg-green-100 text-green-700 border-green-500',
+    CREATED: isMissing() ? 'bg-red-100 text-red-700 border-red-500' : 'bg-blue-100 text-blue-700 border-blue-500',
+    RETURNED: 'bg-yellow-100 text-yellow-700 border-yellow-500',
   };
 
   const getStatusText = () => {
@@ -44,7 +44,7 @@ function StatusBadge({ state, dueDate }: { state: Assignment['state']; dueDate: 
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${styles[state]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border border-dashed ${styles[state]}`}>
       {getStatusText()}
     </span>
   );
