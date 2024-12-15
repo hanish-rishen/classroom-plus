@@ -1,5 +1,9 @@
 'use client';
 
+// ...existing imports...
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
+
 import { Calendar as CalendarIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useState, useEffect, useRef } from 'react';
@@ -23,61 +27,35 @@ type Assignment = {
 export default function CalendarPage() {
   const { data: session, status } = useSession();
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
-  const todayRef = useRef<HTMLDivElement>(null); // Add this ref
+  const todayRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchAssignments();
-    }
-  }, [session?.accessToken, status]);
-
-  useEffect(() => {
-    if (!loading && todayRef.current) {
-      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-  }, [loading]);
-
-  const fetchAssignments = async () => {
-    try {
-      const response = await fetch('/api/classroom/assignments', {
+  const { data: assignments = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['assignments', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/assignments', {
         headers: {
           Authorization: `Bearer ${session?.accessToken}`,
         },
-      });
+      }, 5);
 
-      if (response.status === 401) {
-        setError('Session expired. Please sign in again.');
-        return;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Network response was not ok');
       }
 
-      if (response.status === 429) {
-        const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
-        setError(`Rate limit exceeded. Retrying in ${retryAfter} seconds...`);
-        setTimeout(fetchAssignments, retryAfter * 1000);
-        return;
-      }
+      return response.json();
+    },
+    enabled: status === 'authenticated' && !!session?.accessToken,
+  });
 
-      const data = await response.json();
-      if (data.error) {
-        setError(data.error);
-        setAssignments([]);
-      } else {
-        setAssignments(Array.isArray(data) ? data : []);
-        setError(null);
-        console.log('Fetched assignments:', data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch assignments:', error);
-      setError('Failed to fetch assignments. Please try refreshing the page.');
-      setAssignments([]);
-    } finally {
-      setLoading(false);
+  const error = queryError instanceof Error ? queryError.message : null;
+
+  useEffect(() => {
+    if (!isLoading && todayRef.current) {
+      todayRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  };
+  }, [isLoading]);
 
   const renderHeader = () => {
     const dateFormat = 'MMMM yyyy';
@@ -137,7 +115,7 @@ export default function CalendarPage() {
     while (day <= endDate) {
       for (let i = 0; i < 7; i++) {
         const cloneDay = day;
-        const dayAssignments = assignments.filter(assignment => {
+        const dayAssignments = assignments.filter((assignment: Assignment) => {
           if (!assignment.dueDate) return false;
           if (selectedCourse !== 'all' && assignment.courseId !== selectedCourse) return false;
           const assignmentDate = parseISO(assignment.dueDate);
@@ -167,7 +145,7 @@ export default function CalendarPage() {
               <span className="text-sm font-semibold hidden md:block">{format(day, 'd')}</span>
             </div>
             <div className="mt-2 space-y-1">
-              {dayAssignments.map((assignment, index) => (
+              {dayAssignments.map((assignment: Assignment, index: number) => (
                 <a
                   key={index}
                   href={assignment.alternateLink}
@@ -203,9 +181,9 @@ export default function CalendarPage() {
     setCurrentMonth(addDays(currentMonth, -30));
   };
 
-  const uniqueCourses = Array.from(new Set(assignments.map(a => a.courseName)))
+  const uniqueCourses = Array.from(new Set(assignments.map((a: Assignment) => a.courseName)))
     .map(name => {
-      const course = assignments.find(a => a.courseName === name);
+      const course = assignments.find((a: Assignment) => a.courseName === name);
       return course ? { id: course.courseId, name: course.courseName } : { id: '', name };
     })
     .filter(course => course.id); // Ensure no empty ids
@@ -231,7 +209,7 @@ export default function CalendarPage() {
       {renderHeader()}
       <Card>
         <CardContent className="p-4">
-          {loading ? (
+          {isLoading ? (
             <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
               <Spinner className="h-12 w-12" />
               <p className="text-muted-foreground animate-pulse">Loading Calendar...</p>

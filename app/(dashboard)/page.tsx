@@ -20,6 +20,8 @@ import {
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
 // Updated types to separate notifications
 type Notification = {
@@ -51,77 +53,45 @@ type DashboardStats = {
 
 export default function DashboardPage() {
   const { data: session, status } = useSession();
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]); // Added separate state for notifications
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [loadingNotifications, setLoadingNotifications] = useState(true); // Added loading state for notifications
-  const [errorStats, setErrorStats] = useState<string | null>(null);
-  const [errorNotifications, setErrorNotifications] = useState<string | null>(null); // Added error state for notifications
 
-  useEffect(() => {
-    const fetchDashboardStats = async () => {
-      if (!session?.accessToken) return;
+  const { data: stats, isLoading: loadingStats, error: statsError } = useQuery({
+    queryKey: ['dashboardStats', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/dashboard/stats', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
 
-      try {
-        const response = await fetch('/api/classroom/dashboard/stats', {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch dashboard data');
-        }
-
-        const data = await response.json();
-        setStats(data);
-      } catch (error: any) {
-        console.error('Error fetching dashboard stats:', error);
-        setErrorStats(error.message || 'Failed to load dashboard data');
-      } finally {
-        setLoadingStats(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
       }
-    };
 
-    const fetchNotifications = async () => {
-      if (!session?.accessToken) return;
+      return response.json();
+    },
+    enabled: status === 'authenticated' && !!session?.accessToken,
+  });
 
-      try {
-        const response = await fetch('/api/classroom/notifications', {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
+  const { data: notifications = [], isLoading: loadingNotifications, error: notificationsError } = useQuery({
+    queryKey: ['notifications', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/notifications', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
 
-        if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
-        }
-
-        const data: Notification[] = await response.json();
-        setNotifications(data);
-      } catch (error: any) {
-        console.error('Error fetching notifications:', error);
-        setErrorNotifications(error.message || 'Failed to load notifications');
-      } finally {
-        setLoadingNotifications(false);
+      if (!response.ok) {
+        throw new Error('Failed to fetch notifications');
       }
-    };
 
-    if (status === 'authenticated') {
-      fetchDashboardStats();
-      fetchNotifications();
-    } else if (status === 'unauthenticated') {
-      setErrorStats('You must be logged in to view the dashboard.');
-      setLoadingStats(false);
-      setErrorNotifications('You must be logged in to view notifications.');
-      setLoadingNotifications(false);
-    }
-    // Keep loading true while session is loading
-    else if (status === 'loading') {
-      setLoadingStats(true);
-      setLoadingNotifications(true);
-    }
-  }, [session?.accessToken, status]);
+      return response.json();
+    },
+    enabled: status === 'authenticated' && !!session?.accessToken,
+  });
+
+  const errorStats = statsError instanceof Error ? statsError.message : null;
+  const errorNotifications = notificationsError instanceof Error ? notificationsError.message : null;
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -206,7 +176,7 @@ export default function DashboardPage() {
           ) : (
             <ScrollArea className="h-[400px] md:h-auto rounded-md"> {/* Updated height classes */}
               <div className="p-4 space-y-4">
-                {notifications.map((notification) => (
+                {notifications.map((notification: Notification) => (
                   <div 
                     key={notification.id}
                     className={cn(

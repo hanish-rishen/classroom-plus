@@ -1,12 +1,13 @@
 'use client';
 
 import { Users, ExternalLink, GraduationCap, DoorOpen, BookCopy, Search } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
+import { useQuery } from '@tanstack/react-query';
 
 export default function ClassesPage() {
   interface ClassItem {
@@ -19,58 +20,35 @@ export default function ClassesPage() {
     link: string;
   }
   
-  const { data: session, status } = useSession(); // Add status from useSession
-  const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const { data: session, status } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const fetchClasses = async () => {
-      try {
-        const response = await fetchWithRetry('/api/classroom/classes', 
-          {
-            headers: {
-              Authorization: `Bearer ${session?.accessToken}`,
-            },
-          },
-          5  // Increase max retries
-        );
-        
-        if (response.status === 429) {
-          throw new Error('Rate limit exceeded. Please try again in a few minutes.');
-        }
+  const { data: classes = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['classes', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/classes', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || errorData.details || 'Network response was not ok');
-        }
-
-        const data: ClassItem[] = await response.json();
-        setClasses(data);
-      } catch (error: any) {
-        console.error('Error fetching classes:', error);
-        setError(error.message || 'Failed to load classes. Please try again later.');
-      } finally {
-        setLoading(false);
+      if (response.status === 429) {
+        throw new Error('Rate limit exceeded. Please try again in a few minutes.');
       }
-    };
 
-    // Only fetch if session is loaded and we have an access token
-    if (status === 'authenticated' && session?.accessToken) {
-      fetchClasses();
-    } else if (status === 'unauthenticated') {
-      setError('You must be logged in to view classes.');
-      setLoading(false);
-    }
-    // Keep loading true while session is loading
-    else if (status === 'loading') {
-      setLoading(true);
-    }
-  }, [session?.accessToken, status]); // Add status to dependencies
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Network response was not ok');
+      }
 
-  // Add search filter function
-  const filteredClasses = classes.filter(classItem => 
+      return response.json();
+    },
+    enabled: status === 'authenticated' && !!session?.accessToken,
+  });
+
+  const error = queryError instanceof Error ? queryError.message : null;
+
+  const filteredClasses = classes.filter((classItem: ClassItem) => 
     classItem.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     classItem.teacher.toLowerCase().includes(searchQuery.toLowerCase()) ||
     classItem.section?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,11 +58,10 @@ export default function ClassesPage() {
   return (
     <div className="space-y-6 p-4">
       <div className="flex flex-col gap-4">
-        {/* Header section */}
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="space-y-1">
             <h1 className="text-xl font-bold md:text-2xl">Classes</h1>
-            {!loading && (
+            {!isLoading && (
               <p className="text-sm text-muted-foreground">
                 {filteredClasses.length} {filteredClasses.length === 1 ? 'class' : 'classes'} found
               </p>
@@ -105,7 +82,7 @@ export default function ClassesPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <Spinner className="h-12 w-12" />
           <p className="text-muted-foreground animate-pulse">Loading classes...</p>
@@ -117,11 +94,9 @@ export default function ClassesPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 max-w-5xl mx-auto">
           {[...filteredClasses].sort((a, b) => {
-            // First, sort by known/unknown teacher
             if (a.teacher === 'Unknown Teacher' && b.teacher !== 'Unknown Teacher') return 1;
             if (a.teacher !== 'Unknown Teacher' && b.teacher === 'Unknown Teacher') return -1;
             
-            // Then sort by section/room presence
             const aHasDetails = !!(a.section || a.room);
             const bHasDetails = !!(b.section || b.room);
             return bHasDetails ? 1 : aHasDetails ? -1 : 0;
@@ -192,7 +167,7 @@ export default function ClassesPage() {
         </div>
       )}
       
-      {!loading && filteredClasses.length === 0 && !error && (
+      {!isLoading && filteredClasses.length === 0 && !error && (
         <div className="text-center text-sm text-muted-foreground p-6 border rounded-lg bg-muted/5">
           {searchQuery ? (
             <p>No classes found matching your search.</p>

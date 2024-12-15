@@ -19,6 +19,8 @@ import {
 import { useCart } from '@/contexts/CartContext';
 import { CartButton } from './components/CartButton';
 import { Button } from '@/components/ui/button';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
 type Resource = {
   id: string;
@@ -48,13 +50,32 @@ type Resource = {
 
 export default function ResourcesPage() {
   const { data: session } = useSession();
-  const [resources, setResources] = useState<Resource[]>([]);
-  const [courses, setCourses] = useState<{id: string, name: string}[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedCourse, setSelectedCourse] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { addToCart, isInCart } = useCart();
+
+  const { data, isLoading, error: queryError } = useQuery({
+    queryKey: ['resources', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/resources', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Network response was not ok');
+      }
+
+      return response.json();
+    },
+    enabled: !!session?.accessToken,
+  });
+
+  const resources = data?.materials || [];
+  const courses = data?.courses || [];
+  const error = queryError instanceof Error ? queryError.message : null;
 
   const getFileIcon = (material: Resource['materials'][0]) => {
     if (material.driveFile?.driveFile?.title) {
@@ -71,60 +92,11 @@ export default function ResourcesPage() {
     return <FileText className="h-5 w-5 text-muted-foreground" />;
   };
 
-  useEffect(() => {
-    let isMounted = true;
-    let fetchTimeout: NodeJS.Timeout;
-
-    async function fetchResources() {
-      if (!session?.accessToken || !isMounted) return;
-
-      try {
-        const response = await fetch('/api/classroom/resources', {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        if (!isMounted) return;
-
-        if (response.status === 401) {
-          setError('Session expired. Please sign in again.');
-          return;
-        }
-
-        const data = await response.json();
-        if (data.error) {
-          setError(data.error);
-          setResources([]);
-        } else {
-          setResources(data.materials || []);
-          setCourses(data.courses || []);
-          setError(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch resources:', error);
-        setError('Failed to fetch resources. Please try again later.');
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    setLoading(true);
-    fetchTimeout = setTimeout(fetchResources, 200);
-
-    return () => {
-      isMounted = false;
-      clearTimeout(fetchTimeout);
-    };
-  }, [session?.accessToken]);
-
-  const filteredResources = resources.filter(resource => {
+  const filteredResources = resources.filter((resource: Resource) => {
     const courseMatch = selectedCourse === 'all' || resource.courseId === selectedCourse;
     const searchLower = searchQuery.toLowerCase();
     const titleMatch = resource.title.toLowerCase().includes(searchLower);
-    const fileMatch = resource.materials?.some(item => {
+    const fileMatch = resource.materials?.some((item: Resource['materials'][0]) => {
       const fileName = item.driveFile?.driveFile?.title || 
                       item.link?.title || 
                       item.youtubeVideo?.title || '';
@@ -181,7 +153,7 @@ export default function ResourcesPage() {
             </SelectTrigger>
             <SelectContent className="max-w-xs w-full sm:max-w-md overflow-x-hidden z-50">
               <SelectItem className="whitespace-normal break-words" value="all">All Classes</SelectItem>
-              {courses.map(course => (
+              {courses.map((course: { id: string, name: string }) => (
                 <SelectItem className="whitespace-normal break-words" key={course.id} value={course.id}>
                   {course.name}
                 </SelectItem>
@@ -200,7 +172,7 @@ export default function ResourcesPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
           <Spinner className="h-12 w-12" />
           <p className="text-muted-foreground animate-pulse">Loading resources...</p>
@@ -211,7 +183,7 @@ export default function ResourcesPage() {
         </div>
       ) : (
         <div className="grid gap-4">
-          {filteredResources.map(resource => (
+          {filteredResources.map((resource: Resource) => (
             <div
               key={resource.id}
               className="bg-card rounded-lg border p-4 hover:bg-muted/50 transition-colors overflow-hidden"
@@ -219,7 +191,7 @@ export default function ResourcesPage() {
               <h3 className="font-medium">{resource.title}</h3>
               <p className="text-sm text-muted-foreground mt-1">{resource.courseName}</p>
               <div className="mt-4 grid gap-3 grid-cols-1">
-                {resource.materials?.map((item, index) => {
+                {resource.materials?.map((item: Resource['materials'][0], index: number) => {
                   const link = item.driveFile?.driveFile?.alternateLink || 
                              item.link?.url || 
                              item.youtubeVideo?.alternateLink;

@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { Bell, Search, ExternalLink, CalendarClock } from 'lucide-react';
+import { useSession } from 'next-auth/react';  // Add this import
 import { useToast } from '@/hooks/use-toast';
 import { Spinner } from '@/components/ui/spinner';
 import { Input } from '@/components/ui/input';
 import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
 interface Announcement {
   id: string;
@@ -21,39 +24,41 @@ interface Announcement {
 }
 
 export default function AnnouncementsPage() {
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: session } = useSession();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const { toast } = useToast();
 
-  useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        setError(null);
-        const response = await fetch('/api/classroom/announcements');
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to fetch announcements');
-        }
-        const data = await response.json();
-        setAnnouncements(data);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'An error occurred';
-        setError(message);
-        toast({
-          title: 'Error',
-          description: message,
-          variant: 'destructive',
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: announcements = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['announcements', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/announcements', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
 
-    fetchAnnouncements();
-  }, [toast]);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch announcements');
+      }
+
+      return response.json() as Promise<Announcement[]>;
+    },
+    enabled: !!session?.accessToken,
+  });
+
+  // React Query will handle errors through the error property
+  if (queryError) {
+    const message = queryError instanceof Error ? queryError.message : 'An error occurred';
+    toast({
+      title: 'Error',
+      description: message,
+      variant: 'destructive',
+    });
+  }
+
+  const error = queryError instanceof Error ? queryError.message : null;
 
   // Function to make URLs in text clickable
   const renderTextWithLinks = (text: string) => {
@@ -79,15 +84,15 @@ export default function AnnouncementsPage() {
     });
   };
 
-  const filteredAnnouncements = announcements.filter(announcement =>
+  const filteredAnnouncements = announcements.filter((announcement: Announcement) =>
     (selectedCourse === 'all' || announcement.courseId === selectedCourse) &&
     (announcement.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
     announcement.courseName.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  const uniqueCourses = Array.from(new Set(announcements.map(a => a.courseName)))
-    .map(name => {
-      const course = announcements.find(a => a.courseName === name);
+  const uniqueCourses = Array.from(new Set(announcements.map((a: Announcement) => a.courseName)))
+    .map((name: string) => {
+      const course = announcements.find((a: Announcement) => a.courseName === name);
       return { id: course?.courseId || '', name };
     })
     .filter(course => course.id)
@@ -140,14 +145,14 @@ export default function AnnouncementsPage() {
         </div>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <Spinner className="h-12 w-12" />
           <p className="text-muted-foreground animate-pulse">Loading announcements...</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredAnnouncements.map((announcement) => (
+          {filteredAnnouncements.map((announcement: Announcement) => (
             <div
               key={announcement.id}
               onClick={() => window.open(announcement.alternateLink, '_blank')}
@@ -175,7 +180,7 @@ export default function AnnouncementsPage() {
             </div>
           ))}
 
-          {filteredAnnouncements.length === 0 && !loading && (
+          {filteredAnnouncements.length === 0 && !isLoading && (
             <div className="text-center text-muted-foreground py-8">
               No announcements found
             </div>

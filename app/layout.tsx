@@ -1,13 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
-import { ThemeProvider } from '@/components/theme-provider';
-import { LayoutProvider } from '@/components/layout-context';
-import Sidebar from '@/components/sidebar';
-import Header from '@/components/header';
-import { ColorThemeProvider } from '@/components/theme-colors';
-import { AuthProvider } from '@/components/auth-provider';
-import { CartProvider } from '@/contexts/CartContext';
 
 const hostGrotesk = localFont({
   src: [
@@ -55,15 +48,7 @@ export default function RootLayout({
         />
       </head>
       <body className={`${hostGrotesk.variable} font-sans`}>
-        <AuthProvider>
-          <CartProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-              <ColorThemeProvider>
-                {children}
-              </ColorThemeProvider>
-            </ThemeProvider>
-          </CartProvider>
-        </AuthProvider>
+        {children}
       </body>
     </html>
   );

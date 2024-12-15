@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { fetchWithRetry } from '@/lib/fetch-with-retry';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 type Assignment = {
   id: string;
@@ -52,75 +54,33 @@ function StatusBadge({ state, dueDate }: { state: Assignment['state']; dueDate: 
 
 export default function AssignmentsPage() {
   const { data: session, status } = useSession();
-  const [assignments, setAssignments] = useState<Assignment[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  
+  const { data: assignments = [], isLoading, error: queryError } = useQuery({
+    queryKey: ['assignments', session?.accessToken],
+    queryFn: async () => {
+      const response = await fetchWithRetry('/api/classroom/assignments', {
+        headers: {
+          Authorization: `Bearer ${session?.accessToken}`,
+        },
+      }, 5);
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || errorData.details || 'Network response was not ok');
+      }
+
+      return response.json();
+    },
+    enabled: status === 'authenticated' && !!session?.accessToken,
+  });
+
+  const error = queryError instanceof Error ? queryError.message : null;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'dueDate' | 'title' | 'course'>('dueDate');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [filter, setFilter] = useState<'all' | 'pending' | 'submitted' | 'graded' | 'missing' | 'assigned'>('all');
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
-
-  useEffect(() => {
-    let isMounted = true;
-    let fetchTimeout: NodeJS.Timeout;
-
-    async function fetchAssignments() {
-      if (!session?.accessToken || !isMounted) return;
-
-      try {
-        const response = await fetch('/api/classroom/assignments', {
-          headers: {
-            Authorization: `Bearer ${session.accessToken}`,
-          },
-        });
-
-        if (!isMounted) return;
-
-        if (response.status === 401) {
-          setError('Session expired. Please sign in again.');
-          return;
-        }
-
-        if (response.status === 429) {
-          const retryAfter = parseInt(response.headers.get('Retry-After') || '60');
-          setError(`Rate limit exceeded. Retrying in ${retryAfter} seconds...`);
-          fetchTimeout = setTimeout(fetchAssignments, retryAfter * 1000);
-          return;
-        }
-
-        const data = await response.json();
-        if (data.error) {
-          setError(data.error);
-          setAssignments([]);
-        } else {
-          setAssignments(Array.isArray(data) ? data : []);
-          setError(null);
-        }
-      } catch (error) {
-        if (isMounted) {
-          console.error('Failed to fetch assignments:', error);
-          setError('Failed to fetch assignments. Please try refreshing the page.');
-          setAssignments([]);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    if (status === 'authenticated') {
-      fetchAssignments();
-    }
-
-    return () => {
-      isMounted = false;
-      if (fetchTimeout) {
-        clearTimeout(fetchTimeout);
-      }
-    };
-  }, [session?.accessToken, status]);
 
   const formatDueDate = (dueDate: string | null) => {
     if (!dueDate) return 'No due date';
@@ -132,37 +92,40 @@ export default function AssignmentsPage() {
     return format(date, 'PPp');
   };
 
-  const dueToday = assignments.filter(a => {
+  const dueToday = assignments.filter((a: Assignment) => {
     if (!a.dueDate) return false;
     const dueDate = new Date(a.dueDate);
     const today = new Date();
     return dueDate.toDateString() === today.toDateString();
   });
 
-  const upcoming = assignments.filter(a => {
+  const upcoming = assignments.filter((a: Assignment) => {
     if (!a.dueDate) return false;
     const dueDate = new Date(a.dueDate);
     const today = new Date();
     return dueDate > today && a.state !== 'TURNED_IN';
   });
 
-  const completed = assignments.filter(a => a.state === 'TURNED_IN');
+  const completed = assignments.filter((a: Assignment) => a.state === 'TURNED_IN');
 
-  const uniqueCourses = Array.from(new Set(assignments.map(a => a.courseName)))
-    .map(name => {
-      const course = assignments.find(a => a.courseName === name);
-      return { id: course?.courseId || '', name };
+  const uniqueCourses = Array.from(new Set(assignments.map((a: Assignment) => a.courseName)))
+    .map((name) => {
+      const course = assignments.find((a: Assignment) => a.courseName === name);
+      return { 
+        id: course?.courseId || '', 
+        name: name as string 
+      };
     })
     .filter(course => course.id)
     .sort((a, b) => a.name.localeCompare(b.name));
 
   const filteredAssignments = assignments
-    .filter(assignment => 
+    .filter((assignment: Assignment) => 
       (selectedCourse === 'all' || assignment.courseId === selectedCourse) &&
       (assignment.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       assignment.courseName.toLowerCase().includes(searchQuery.toLowerCase()))
     )
-    .sort((a, b) => {
+    .sort((a: Assignment, b: Assignment) => {
       if (sortBy === 'dueDate') {
         return sortOrder === 'asc'
           ? new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
@@ -175,7 +138,7 @@ export default function AssignmentsPage() {
       return 0;
     });
 
-  const assigned = assignments.filter(a => {
+  const assigned = assignments.filter((a: Assignment) => {
     // Only count assignments that are CREATED (not turned in or graded)
     if (a.state !== 'CREATED') return false;
     
@@ -196,7 +159,7 @@ export default function AssignmentsPage() {
     // Include assignments due today
     return dueDate >= today;
   });
-  const missing = assignments.filter(a => {
+  const missing = assignments.filter((a: Assignment) => {
     if (!a.dueDate) return false;
     const dueDate = new Date(a.dueDate);
     const today = new Date();
@@ -208,16 +171,16 @@ export default function AssignmentsPage() {
     
     switch (filter) {
       case 'pending':
-        filtered = filtered.filter(a => a.state === 'CREATED');
+        filtered = filtered.filter((a: Assignment) => a.state === 'CREATED');
         break;
       case 'submitted':
-        filtered = filtered.filter(a => a.state === 'TURNED_IN');
+        filtered = filtered.filter((a: Assignment) => a.state === 'TURNED_IN');
         break;
       case 'graded':
-        filtered = filtered.filter(a => a.state === 'RETURNED');
+        filtered = filtered.filter((a: Assignment) => a.state === 'RETURNED');
         break;
       case 'missing':
-        filtered = filtered.filter(a => {
+        filtered = filtered.filter((a: Assignment) => {
           if (!a.dueDate) return false;
           const dueDate = new Date(a.dueDate);
           const today = new Date();
@@ -225,7 +188,7 @@ export default function AssignmentsPage() {
         });
         break;
       case 'assigned':
-        filtered = filtered.filter(a => {
+        filtered = filtered.filter((a: Assignment) => {
           if (a.state !== 'CREATED') return false;
           if (!a.dueDate || a.dueDate === '') return true;
           const dueDate = new Date(a.dueDate);
@@ -340,7 +303,7 @@ export default function AssignmentsPage() {
         </TabsList>
       </Tabs>
 
-      {loading ? (
+      {isLoading ? (
         <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
           <Spinner className="h-12 w-12" />
           <p className="text-muted-foreground animate-pulse">Loading assignments...</p>
@@ -356,7 +319,7 @@ export default function AssignmentsPage() {
           </div>
 
           <div className="divide-y">
-            {getFilteredAssignments().map((assignment) => (
+            {getFilteredAssignments().map((assignment: Assignment) => (
               <div key={assignment.id} className="p-4">
                 <div className="md:hidden space-y-2">
                   <div className="flex items-center gap-2">
