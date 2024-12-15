@@ -44,8 +44,12 @@ export async function GET(req: NextRequest) {
     auth.setCredentials({ access_token: accessToken });
     const classroom = google.classroom({ version: 'v1', auth });
 
-    // Add delay between requests to respect rate limits
-    const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    // Remove or adjust delays
+    // Option 1: Remove delays entirely
+    const delay = (ms: number) => Promise.resolve();
+
+    // Option 2: Reduce delays
+    // const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms / 2));
 
     try {
       // Fetch all courses with pagination
@@ -65,26 +69,29 @@ export async function GET(req: NextRequest) {
         allCourses = [...allCourses, ...courses];
         pageToken = courseResponse.data.nextPageToken; // Access data via .data
 
-        // Add delay between pagination requests
-        if (pageToken) {
-          await delay(1000);
-        }
+        // Remove delay between pagination requests
+        // if (pageToken) {
+        //   await delay(1000);
+        // }
+
       } while (pageToken);
 
       if (!allCourses.length) return NextResponse.json([]);
 
-      // Process courses in smaller batches with longer delays
-      const batchSize = 3; // Reduced batch size
+      // Process courses in larger batches to reduce total processing time
+      const batchSize = 10; // Increased batch size
       const classes: Class[] = [];
 
       for (let i = 0; i < allCourses.length; i += batchSize) {
         const batch = allCourses.slice(i, i + batchSize);
         
-        // Process each batch
+        // Process each batch without delays
         const batchResults = await Promise.all(
           batch.map(async (course) => {
             try {
-              await delay(500); // Add delay between each course request
+              // Remove or reduce delay between each course request
+              // await delay(500);
+
               const [students, teacher] = await Promise.all([
                 classroom.courses.students.list({
                   courseId: course.id!,
@@ -116,10 +123,10 @@ export async function GET(req: NextRequest) {
 
         classes.push(...batchResults.filter((result): result is Class => result !== null));
 
-        // Add longer delay between batches
-        if (i + batchSize < allCourses.length) {
-          await delay(2000); // 2 second delay between batches
-        }
+        // Remove delay between batches
+        // if (i + batchSize < allCourses.length) {
+        //   await delay(2000);
+        // }
       }
 
       // Cache the results
