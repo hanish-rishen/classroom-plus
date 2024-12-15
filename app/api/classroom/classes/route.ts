@@ -53,16 +53,17 @@ export async function GET(req: NextRequest) {
       let pageToken: string | undefined | null = undefined;
 
       do {
-        const courseResponse: GaxiosResponse<classroom_v1.Schema$ListCoursesResponse> = await classroom.courses.list({ // Updated type annotation
+        // Correct type annotation using GaxiosResponse
+        const courseResponse: GaxiosResponse<classroom_v1.Schema$ListCoursesResponse> = await classroom.courses.list({
           pageSize: 50,  // Increased page size
           courseStates: ['ACTIVE'],
           fields: 'nextPageToken,courses(id,name,ownerId,section,room,enrollmentCode)',
           pageToken: pageToken || undefined,
         });
 
-        const courses = courseResponse.data.courses || [];
+        const courses = courseResponse.data.courses || []; // Access data via .data
         allCourses = [...allCourses, ...courses];
-        pageToken = courseResponse.data.nextPageToken;
+        pageToken = courseResponse.data.nextPageToken; // Access data via .data
 
         // Add delay between pagination requests
         if (pageToken) {
