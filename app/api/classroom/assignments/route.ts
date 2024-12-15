@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { google, classroom_v1 } from 'googleapis';
-import { memoryCache } from '@/lib/cache';
+import { cache } from '@/lib/cache';
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS = 30; // 30 requests per minute
