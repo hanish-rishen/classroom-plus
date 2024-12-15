@@ -37,6 +37,7 @@ import { Logo } from '@/components/ui/logo';
 const navigation = [
   { name: 'Dashboard', href: '/', icon: LayoutDashboard },
   { name: 'Assignments', href: '/assignments', icon: ClipboardList },
+  { name: 'Announcements', href: '/announcements', icon: Bell },
   { name: 'Resources', href: '/resources', icon: FolderOpen },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
   { name: 'Classes', href: '/classes', icon: Users },
