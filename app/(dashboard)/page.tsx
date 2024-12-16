@@ -22,7 +22,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
-import { PostHog } from '@/lib/posthog';
+import posthog from 'posthog-js';  // Change this import
 
 // Updated types to separate notifications
 type Notification = {
@@ -94,9 +94,9 @@ export default function DashboardPage() {
   const errorStats = statsError instanceof Error ? statsError.message : null;
   const errorNotifications = notificationsError instanceof Error ? notificationsError.message : null;
 
-  // Add tracking for card clicks
+  // Update the tracking function to use posthog directly
   const handleCardClick = (cardName: string) => {
-    PostHog.capture('dashboard_card_click', {
+    posthog.capture('dashboard_card_click', {
       card_name: cardName
     });
   };

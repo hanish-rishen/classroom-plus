@@ -1,28 +1,8 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactNode, useEffect, useState } from 'react';
-import { PostHog } from '@/lib/posthog';
-import { usePathname, useSearchParams } from 'next/navigation';
-
-function PostHogPageview(): JSX.Element {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    if (pathname) {
-      let url = window.origin + pathname;
-      if (searchParams?.toString()) {
-        url = url + `?${searchParams.toString()}`;
-      }
-      PostHog.capture('$pageview', {
-        $current_url: url,
-      });
-    }
-  }, [pathname, searchParams]);
-
-  return <></>;
-}
+import { ReactNode, useState } from 'react';
+import { PostHogProvider } from './providers/posthog';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
@@ -35,9 +15,10 @@ export function Providers({ children }: { children: ReactNode }) {
   }));
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PostHogPageview />
-      {children}
-    </QueryClientProvider>
+    <PostHogProvider>
+      <QueryClientProvider client={queryClient}>
+        {children}
+      </QueryClientProvider>
+    </PostHogProvider>
   );
 }
