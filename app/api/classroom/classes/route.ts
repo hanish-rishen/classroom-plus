@@ -53,7 +53,8 @@ export async function GET(req: NextRequest) {
         const courseResponse: GaxiosResponse<classroom_v1.Schema$ListCoursesResponse> = await classroom.courses.list({
           pageSize: 50,
           courseStates: ['ACTIVE'],
-          fields: 'nextPageToken,courses(id,name,ownerId,section,room,enrollmentCode)',
+          // Add alternateLink to fields
+          fields: 'nextPageToken,courses(id,name,ownerId,section,room,enrollmentCode,alternateLink)',
           pageToken: pageToken || undefined,
         });
 
@@ -90,7 +91,8 @@ export async function GET(req: NextRequest) {
                 students: students.data.students?.length || 0,
                 section: course.section || undefined,
                 room: course.room || undefined,
-                link: `https://classroom.google.com/c/${course.id}`,
+                // Use alternateLink from Google Classroom API
+                link: course.alternateLink || '',
               };
 
               return result;

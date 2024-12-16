@@ -4,7 +4,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
 
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, AlertCircle, RefreshCw } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { useState, useEffect, useRef } from 'react';
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isSameMonth, isSameDay, parseISO } from 'date-fns';
@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
 type Assignment = {
   id: string;
@@ -223,8 +224,20 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
       {error && (
-        <div className="flex items-center justify-center">
-          <p className="text-red-500">{error}</p>
+        <div className="flex items-center justify-center p-4">
+          <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-lg border border-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </div>
         </div>
       )}
     </div>

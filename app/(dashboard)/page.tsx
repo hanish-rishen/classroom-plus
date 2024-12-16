@@ -16,12 +16,14 @@ import {
   ArrowUpRight,
   School,
   ExternalLink,
-  ClipboardList
+  ClipboardList,
+  RefreshCw // Added import
 } from 'lucide-react';
 import { Spinner } from '@/components/ui/spinner';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
+import { Button } from '@/components/ui/button'; // Added import
 
 // Updated types to separate notifications
 type Notification = {
@@ -85,9 +87,23 @@ export default function DashboardPage() {
         throw new Error('Failed to fetch notifications');
       }
 
-      return response.json();
+      const data = await response.json();
+      // Format the IDs in the links
+      return data.map((notification: Notification) => {
+        if (notification.link) {
+          // Convert base10 IDs to proper format
+          const link = notification.link.replace(
+            /\/c\/(\d+)\/a\/(\d+)\/details/,
+            (_, courseId, assignmentId) => 
+              `/c/${BigInt(courseId).toString(10)}/${BigInt(assignmentId).toString(10)}/details`
+          );
+          return { ...notification, link };
+        }
+        return notification;
+      });
     },
     enabled: status === 'authenticated' && !!session?.accessToken,
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
   });
 
   const errorStats = statsError instanceof Error ? statsError.message : null;
@@ -96,6 +112,25 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 p-4 md:p-6">
       <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
+
+      {/* Add this before the Navigation Cards section */}
+      {(errorStats || errorNotifications) && (
+        <div className="flex items-center justify-center p-4">
+          <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-lg border border-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>{errorStats || errorNotifications}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -158,43 +193,46 @@ export default function DashboardPage() {
       <div className="space-y-4">
         <div className="flex items-center">
           <h2 className="text-xl font-semibold">Recent Activity</h2>
-          {/* Removed the number of notifications */}
         </div>
 
         <Card>
-          {loadingNotifications ? (
-            // Loader inside the Card component with updated styling
-            <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
-              <Spinner className="h-12 w-12" />
-              <p className="text-muted-foreground animate-pulse">Loading recent activity...</p>
-            </div>
-          ) : errorNotifications ? (
-            // Show error message inside the Card component
-            <div className="flex items-center justify-center h-40">
-              <p className="text-destructive">{errorNotifications}</p>
-            </div>
-          ) : (
-            <ScrollArea className="h-[400px] md:h-auto rounded-md"> {/* Updated height classes */}
-              <div className="p-4 space-y-4">
-                {notifications.map((notification: Notification) => (
-                  <div 
+          <ScrollArea className="h-[400px] md:h-auto rounded-md">
+            <div className="p-4 space-y-4">
+              {loadingNotifications ? (
+                <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
+                  <Spinner className="h-12 w-12" />
+                  <p className="text-muted-foreground animate-pulse">Loading recent activity...</p>
+                </div>
+              ) : errorNotifications ? (
+                <div className="flex items-center justify-center h-40">
+                  <p className="text-destructive">{errorNotifications}</p>
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No notifications found
+                </div>
+              ) : (
+                notifications.map((notification: Notification) => (
+                  <div
                     key={notification.id}
+                    onClick={() => {
+                      if (notification.link) {
+                        window.open(notification.link, '_blank');
+                      }
+                    }}
                     className={cn(
-                      "relative p-4 rounded-lg border transition-colors", // Added 'relative' class
+                      "relative p-4 rounded-lg border transition-colors cursor-pointer",
                       notification.read ? "bg-muted/50" : "bg-card border-primary/50",
                       "hover:bg-accent/50"
                     )}
                   >
                     {notification.link && (
-                      <a 
-                        href={notification.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <span 
                         className="absolute top-2 right-2 text-muted-foreground hover:text-primary transition-colors"
-                        title="View details"
+                        title="Open in Google Classroom"
                       >
                         <ExternalLink className="h-4 w-4" />
-                      </a>
+                      </span>
                     )}
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                       <Bell className={cn(
@@ -237,16 +275,10 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-                ))}
-
-                {(!notifications.length) && (
-                  <div className="text-center text-muted-foreground py-8">
-                    No notifications found
-                  </div>
-                )}
-              </div>
-            </ScrollArea>
-          )}
+                ))
+              )}
+            </div>
+          </ScrollArea>
         </Card>
       </div>
     </div>

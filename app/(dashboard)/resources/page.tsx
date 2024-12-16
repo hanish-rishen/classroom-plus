@@ -14,7 +14,9 @@ import {
   FileSpreadsheet,
   Presentation,
   Plus,
-  Download
+  Download,
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { useCart } from '@/contexts/CartContext';
 import { CartButton } from './components/CartButton';
@@ -179,7 +181,19 @@ export default function ResourcesPage() {
         </div>
       ) : error ? (
         <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
-          <p className="text-destructive">{error}</p>
+          <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-lg border border-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid gap-4">

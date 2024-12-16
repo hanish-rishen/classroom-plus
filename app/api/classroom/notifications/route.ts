@@ -5,6 +5,35 @@ import { getServerSession } from 'next-auth';
 import { google, classroom_v1 } from 'googleapis';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
+// Update the helper function at the top of the file
+function decodeGoogleId(encodedId: string): string {
+  const base64Regex = /^[A-Za-z0-9+/=_-]+$/;
+  
+  if (!base64Regex.test(encodedId)) {
+    return encodedId;
+  }
+
+  try {
+    return Buffer.from(encodedId, 'base64url').toString('ascii');
+  } catch (error) {
+    console.error('Error decoding ID:', error);
+    return encodedId;
+  }
+}
+
+// Add these helper functions at the top
+function formatClassroomId(id: string): string {
+  // Remove any non-numeric characters
+  const numericId = id.replace(/\D/g, '');
+  // Convert to decimal if it's a valid number
+  try {
+    return numericId;
+  } catch (error) {
+    console.error('Error formatting ID:', error);
+    return id;
+  }
+}
+
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -32,7 +61,8 @@ export async function GET() {
         courseId: course.id!,
         pageSize: 10,
         orderBy: 'updateTime desc',
-        fields: 'courseWork(id,title,updateTime)',
+        // Add alternateLink to fields
+        fields: 'courseWork(id,title,updateTime,alternateLink)',
       });
 
       const courseWork = courseWorkResponse.data.courseWork || [];
@@ -44,11 +74,12 @@ export async function GET() {
           title: work.title,
           message: `Updated coursework: ${work.title}`,
           timestamp: work.updateTime || new Date().toISOString(),
-          link: `https://classroom.google.com/c/${course.id}/a/${work.id}`,
-          read: false, // Default to unread
+          // Use the alternateLink from Google Classroom API
+          link: work.alternateLink || '',
+          read: false,
           courseId: course.id,
           courseworkId: work.id,
-          courseName: course.name || 'Unknown Course', // Added courseName
+          courseName: course.name || 'Unknown Course',
         });
       });
     }

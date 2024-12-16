@@ -4,7 +4,7 @@ import { signIn } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Logo } from '@/components/ui/logo';
-import { BookOpen, Calendar, Users, FolderOpen, Palette, Check } from 'lucide-react';
+import { BookOpen, Calendar, Users, FolderOpen, Palette, Check, ExternalLink } from 'lucide-react';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { useColorTheme } from '@/components/theme-colors';
 import {
@@ -145,6 +145,24 @@ export default function LoginPage() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          </div>
+
+          {/* Add this built by section with updated LinkedIn link */}
+          <div className="py-4 text-center">
+            <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
+              <span className="text-sm text-muted-foreground">Built with</span>
+              <span className="animate-pulse text-primary">♥️</span>
+              <span className="text-sm text-muted-foreground">by</span>
+              <a 
+                href="https://www.linkedin.com/in/hanish-rishen-331072248/" 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-primary hover:underline inline-flex items-center gap-1"
+              >
+                Hanish Rishen
+                <ExternalLink className="h-3 w-3" />
+              </a>
             </div>
           </div>
         </div>

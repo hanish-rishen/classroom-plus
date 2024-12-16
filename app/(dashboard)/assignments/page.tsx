@@ -6,7 +6,7 @@ import { fetchWithRetry } from '@/lib/fetch-with-retry';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CheckCircle2, Clock, AlertCircle, CalendarDays, ArrowUpRight } from 'lucide-react';
+import { CheckCircle2, Clock, AlertCircle, CalendarDays, ArrowUpRight, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import Image from 'next/image';
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
 
 type Assignment = {
   id: string;
@@ -207,7 +208,19 @@ export default function AssignmentsPage() {
   if (error) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
-        <p className="text-red-500">{error}</p>
+        <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-lg border border-destructive">
+          <AlertCircle className="h-5 w-5" />
+          <p>{error}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => window.location.reload()}
+            className="ml-2"
+          >
+            <RefreshCw className="h-4 w-4 mr-1" />
+            Retry
+          </Button>
+        </div>
       </div>
     );
   }

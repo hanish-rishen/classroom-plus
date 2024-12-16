@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Bell, Search, ExternalLink, CalendarClock } from 'lucide-react';
+import { Bell, Search, ExternalLink, CalendarClock, AlertCircle, RefreshCw } from 'lucide-react';
 import { useSession } from 'next-auth/react';  // Add this import
 import { useToast } from '@/hooks/use-toast';
 import { Spinner } from '@/components/ui/spinner';
@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
+import { Button } from '@/components/ui/button';
 
 interface Announcement {
   id: string;
@@ -190,9 +191,19 @@ export default function AnnouncementsPage() {
 
       {error && (
         <div className="flex items-center justify-center p-4">
-          <p className="text-destructive bg-destructive/10 px-4 py-2 rounded-md">
-            {error}
-          </p>
+          <div className="flex items-center gap-2 p-4 text-destructive bg-destructive/10 rounded-lg border border-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <p>{error}</p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => window.location.reload()}
+              className="ml-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-1" />
+              Retry
+            </Button>
+          </div>
         </div>
       )}
     </div>

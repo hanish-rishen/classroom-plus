@@ -137,8 +137,7 @@ export default function Sidebar() {
                   pathname === item.href
                     ? 'bg-primary text-primary-foreground'
                     : 'hover:bg-muted'
-                )}
-              >
+                )}>
                 <item.icon className={cn("h-5 w-5", !isCollapsed && "mr-3")} />
                 <span className={cn("transition-opacity", 
                   isCollapsed && "md:hidden"
@@ -149,8 +148,27 @@ export default function Sidebar() {
             ))}
           </nav>
 
-          {/* Bottom section with user profile */}
-          <div className="mt-auto border-t p-4">
+          {/* Built by tag - Moved here, before the border */}
+          <div className={cn(
+            "mb-4 px-4 text-xs text-center text-muted-foreground",
+            "opacity-70 hover:opacity-100 transition-opacity",
+            isCollapsed && "md:hidden"
+          )}>
+            <p className="font-medium">
+              Built with ♥️ by
+            </p>
+            <a 
+              href="https://www.linkedin.com/in/hanish-rishen-331072248/" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-primary hover:underline"
+            >
+              Hanish Rishen
+            </a>
+          </div>
+
+          {/* Bottom section */}
+          <div className="border-t p-4">
             <div className="rounded-lg border bg-card p-4 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <Avatar className="h-9 w-9">
