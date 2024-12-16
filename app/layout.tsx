@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import localFont from 'next/font/local';
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const hostGrotesk = localFont({
   src: [
@@ -51,6 +52,7 @@ export default function RootLayout({
       <body className={`${hostGrotesk.variable} font-sans`}>
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
