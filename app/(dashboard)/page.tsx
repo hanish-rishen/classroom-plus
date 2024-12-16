@@ -22,7 +22,6 @@ import { Spinner } from '@/components/ui/spinner';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from '@tanstack/react-query';
 import { fetchWithRetry } from '@/lib/fetch-with-retry';
-import posthog from 'posthog-js';  // Change this import
 
 // Updated types to separate notifications
 type Notification = {
@@ -94,13 +93,6 @@ export default function DashboardPage() {
   const errorStats = statsError instanceof Error ? statsError.message : null;
   const errorNotifications = notificationsError instanceof Error ? notificationsError.message : null;
 
-  // Update the tracking function to use posthog directly
-  const handleCardClick = (cardName: string) => {
-    posthog.capture('dashboard_card_click', {
-      card_name: cardName
-    });
-  };
-
   return (
     <div className="space-y-6 p-4 md:p-6">
       <h1 className="text-2xl font-bold md:text-3xl">Dashboard</h1>
@@ -108,10 +100,7 @@ export default function DashboardPage() {
       {/* Navigation Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {/* Assignments Card */}
-        <Link 
-          href="/assignments" 
-          onClick={() => handleCardClick('assignments')}
-        >
+        <Link href="/assignments">
           <Card className="hover:bg-muted/50 transition-all group border-dashed border-2 border-primary">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Assignments</CardTitle>
