@@ -74,7 +74,7 @@ export default function DashboardPage() {
     enabled: status === 'authenticated' && !!session?.accessToken,
   });
 
-  const { data: notifications = [], isLoading: loadingNotifications, error: notificationsError } = useQuery({
+  const { data: notifications, isLoading: loadingNotifications, error: notificationsError } = useQuery({
     queryKey: ['notifications', session?.accessToken],
     queryFn: async () => {
       const response = await fetchWithRetry('/api/classroom/notifications', {
@@ -87,23 +87,11 @@ export default function DashboardPage() {
         throw new Error('Failed to fetch notifications');
       }
 
-      const data = await response.json();
-      // Format the IDs in the links
-      return data.map((notification: Notification) => {
-        if (notification.link) {
-          // Convert base10 IDs to proper format
-          const link = notification.link.replace(
-            /\/c\/(\d+)\/a\/(\d+)\/details/,
-            (_, courseId, assignmentId) => 
-              `/c/${BigInt(courseId).toString(10)}/${BigInt(assignmentId).toString(10)}/details`
-          );
-          return { ...notification, link };
-        }
-        return notification;
-      });
+      return response.json();
     },
     enabled: status === 'authenticated' && !!session?.accessToken,
     staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    refetchOnWindowFocus: false,
   });
 
   const errorStats = statsError instanceof Error ? statsError.message : null;
@@ -198,7 +186,7 @@ export default function DashboardPage() {
         <Card>
           <ScrollArea className="h-[400px] md:h-auto rounded-md">
             <div className="p-4 space-y-4">
-              {loadingNotifications ? (
+              {loadingNotifications || !session ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
                   <Spinner className="h-12 w-12" />
                   <p className="text-muted-foreground animate-pulse">Loading recent activity...</p>
@@ -207,7 +195,7 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-center h-40">
                   <p className="text-destructive">{errorNotifications}</p>
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : !notifications || notifications.length === 0 ? (
                 <div className="text-center text-muted-foreground py-8">
                   No notifications found
                 </div>
