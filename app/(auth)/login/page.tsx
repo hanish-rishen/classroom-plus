@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { signIn } from 'next-auth/react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { colorOptions } from '@/lib/constants';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { PrivacyPolicyModal } from '@/components/privacy-policy-modal';
 
 const features = [
   {
@@ -41,16 +44,20 @@ const features = [
 
 export default function LoginPage() {
   const { colorTheme, setColorTheme } = useColorTheme();
+  const [showPrivacyPolicy, setShowPrivacyPolicy] = useState(false);
 
-  const handleSignIn = async () => {
-    try {
-      await signIn('google', { 
-        callbackUrl: '/',
-        redirect: true 
-      });
-    } catch (error) {
+  const handleSignIn = () => {  // Remove async
+    setShowPrivacyPolicy(true);
+  };
+
+  const handlePrivacyPolicyAccept = () => {
+    setShowPrivacyPolicy(false);
+    signIn('google', { 
+      callbackUrl: '/',
+      redirect: true 
+    }).catch((error) => {
       console.error('Sign in error:', error);
-    }
+    });
   };
 
   return (
@@ -120,7 +127,7 @@ export default function LoginPage() {
                       Sign in with your Google Classroom account to enhance your learning experience
                     </CardDescription>
                   </CardHeader>
-                  <CardContent className="grid gap-4">
+                  <CardContent>
                     <Button 
                       onClick={handleSignIn}
                       className="w-full bg-primary hover:bg-primary/90"
@@ -167,6 +174,11 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+      <PrivacyPolicyModal
+        isOpen={showPrivacyPolicy}
+        onAccept={handlePrivacyPolicyAccept}
+        onOpenChange={setShowPrivacyPolicy}
+      />
     </div>
   );
 }

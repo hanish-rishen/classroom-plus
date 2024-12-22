@@ -50,6 +50,18 @@ export default function Sidebar() {
   const { colorTheme, setColorTheme } = useColorTheme();
   const { data: session } = useSession();
 
+  const handleSignOut = () => {
+    // Clear all welcome flags when signing out
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('hasSeenWelcome_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    signOut({ callbackUrl: '/login' });
+  };
+
   // Mobile menu toggle that floats
   const MobileMenuToggle = () => (
     <Button
@@ -191,7 +203,7 @@ export default function Sidebar() {
                   "border-primary/20 bg-primary/10",
                   "text-primary hover:bg-primary/20 hover:text-primary"
                 )}
-                onClick={() => signOut({ callbackUrl: '/login' })}
+                onClick={handleSignOut}  // Changed from signOut to handleSignOut
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
